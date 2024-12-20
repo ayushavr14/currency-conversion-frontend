@@ -1,35 +1,37 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+
 interface ConversionRecord {
   from: string;
   to: string;
   amount: number;
   convertedAmount: number;
   rate: number;
-  timestamp: number;
   createdAt: string;
 }
 
 const ConversionHistory = () => {
-  const [history, setHistory] = useState<ConversionRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await fetch("http://localhost:8000/api/history");
-        if (!response.ok) {
-          throw new Error("Failed to fetch conversion history");
-        }
-        const data = await response.json();
-        setHistory(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchHistory();
-  }, []);
+  const fetchHistory = async () => {
+    try {
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/history`
+      );
+      return data;
+    } catch (err) {
+      console.error("Error fetching conversion history:", err);
+      return [];
+    }
+  };
+
+  const {
+    data: history,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["conversionHistory"],
+    queryFn: fetchHistory,
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -40,7 +42,7 @@ const ConversionHistory = () => {
   if (error) {
     return (
       <div className="text-red-500 text-center p-4 bg-red-50 rounded-lg">
-        Error: {error}
+        Error: {error.message}
       </div>
     );
   }
@@ -55,7 +57,7 @@ const ConversionHistory = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {history.map((record, index) => (
+          {history.map((record: ConversionRecord, index: number) => (
             <div
               key={index}
               className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"

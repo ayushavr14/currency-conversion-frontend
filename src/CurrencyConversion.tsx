@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeftRight } from "lucide-react";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Currency {
   code: string;
@@ -20,6 +21,7 @@ interface Currency {
 }
 
 export function CurrencyConverter() {
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState<string>("1000");
   const [fromCurrency, setFromCurrency] = useState<string>("USD");
   const [toCurrency, setToCurrency] = useState<string>("INR");
@@ -33,7 +35,9 @@ export function CurrencyConverter() {
 
   const fetchCurrencies = async () => {
     try {
-      const { data } = await axios.get("http://localhost:8000/api/currencies");
+      const { data } = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/currencies`
+      );
       setCurrencies(data);
     } catch (error) {
       console.error("Error fetching currencies:", error);
@@ -42,16 +46,20 @@ export function CurrencyConverter() {
 
   const handleConvert = async () => {
     try {
-      const { data } = await axios.post("http://localhost:8000/api/convert", {
-        amount: parseFloat(amount),
-        from: fromCurrency,
-        to: toCurrency,
-      });
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/convert`,
+        {
+          amount: parseFloat(amount),
+          from: fromCurrency,
+          to: toCurrency,
+        }
+      );
       setResult(
         `${amount} ${fromCurrency} = ${data.convertedAmount.toFixed(
           2
         )} ${toCurrency}`
       );
+      queryClient.invalidateQueries({ queryKey: ["conversionHistory"] });
     } catch (error) {
       console.error("Error converting currency:", error);
     }
